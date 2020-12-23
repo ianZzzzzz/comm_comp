@@ -19,3 +19,11 @@ raw['datetime'] = raw['date']+raw['time'] # bug 时间和日期之间要有空�
 raw.head(5)
 gb = raw.groupby('area')['datetime'].count()
 gb.sort_values()
+
+np = raw.values[:,0:5]
+np_dict = {}
+for i in area_set:
+    mask = np[:,2]==i
+    np_dict[i] = np[mask]
+
+
