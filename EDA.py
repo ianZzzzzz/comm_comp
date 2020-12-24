@@ -21,6 +21,7 @@ gb = raw.groupby('area')['datetime'].count()
 gb.sort_values()
 
 np = raw.values[:,0:5]
+
 np_dict = {}
 for i in area_set:
     mask = np[:,2]==i
