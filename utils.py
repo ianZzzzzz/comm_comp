@@ -4,18 +4,6 @@ import pandas as pd
 from typing import List, Dict
 from numpy import ndarray
 from pandas import DataFrame
-log_path = 'm'
-
-log_np = load(
-    log_path =log_path,
-    read_mode ='pandas',
-    return_mode = 'values',
-    encoding = 'gbk',
-    columns = ['date','time','area','upload_quantity_GB','download_quantity_gb' ]
-    )
-log_np = cut_nan(log_np,key_col = [0,1])
-log_np = time_convert(log_np,merge = True,date_time_col = [0,1])
-log_dict = to_dict(log_np)
 
 def load(
     log_path: str,
@@ -33,8 +21,8 @@ def load(
     if return_mode == 'df':return log
     if return_mode == 'values':return log.values
 def cut_nan(
-    log: ndarray or DataFrame,
-    key_col: List['col_number_1','col_number_2']
+    log,
+    key_col:list
     )->ndarray:
     '''删除给定列中存在空值的日志行'''
     import numpy as np
@@ -50,12 +38,12 @@ def cut_nan(
 
     # nan row filter
     for i in key_col:
-        mask = np.isnan(log[:,i])
+        mask = np.isnan(log[:,i]) # bug
         log = log[~mask]
     
     return log
 def time_convert(
-    log: ndarray or DataFrame,
+    log: ndarray ,
     merge: bool,
     date_time_col:List['datetime'], 
     start_time = '2018/3/1T00:00:00'
@@ -74,8 +62,8 @@ def time_convert(
         #1拼接
         if merge == True: 
             def merge_col(log: ndarray)-> str:
-                date = log[0]
-                time = log[1]
+                date = log[:,0]
+                time = log[:,1]
                 date__time = log[date]+'T'+'0'+log[time] # '0' especially for mathor cup data
                 return date__time
             date_time_a16 = merge_col(log[row,date_time_col]) 
@@ -103,7 +91,6 @@ def time_convert(
          (log[:,[2,3,4]],date_time_array)
          ,axis = 1)
     return new_log
-
 def to_dict(
     log: ndarray
 )-> Dict[str,ndarray]:
@@ -115,9 +102,18 @@ def to_dict(
         log_dict[area] = log[mask][:,[1,2,3]]
         
     return log_dict
-
-
-
+# test
+log_path = 'D:\\zyh\\data\\com_comp\\train\\test.csv'
+log_np = load(
+    log_path =log_path,
+    read_mode ='pandas',
+    return_mode = 'values',
+    encoding = 'utf-8',
+    columns = ['date','time','area','upload_quantity_GB','download_quantity_gb' ]
+    )
+log_np = cut_nan(log_np,key_col = [0,1])
+log_np = time_convert(log_np,merge = True,date_time_col = [0,1])
+log_dict = to_dict(log_np)
 
 
 
