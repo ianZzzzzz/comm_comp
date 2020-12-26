@@ -4,6 +4,18 @@ import pandas as pd
 from typing import List, Dict
 from numpy import ndarray
 from pandas import DataFrame
+log_path = 'm'
+
+log_np = load(
+    log_path =log_path,
+    read_mode ='pandas',
+    return_mode = 'values',
+    encoding = 'gbk',
+    columns = ['date','time','area','upload_quantity_GB','download_quantity_gb' ]
+    )
+log_np = cut_nan(log_np,key_col = [0,1])
+log_np = time_convert(log_np,merge = True,date_time_col = [0,1])
+log_dict = to_dict(log_np)
 
 def load(
     log_path: str,
@@ -45,7 +57,7 @@ def cut_nan(
 def time_convert(
     log: ndarray or DataFrame,
     merge: bool,
-    date_time:List['date time'], 
+    date_time_col:List['datetime'], 
     start_time = '2018/3/1T00:00:00'
     )->ndarray: 
     '''将日志数据的时间进行拼接转秒 秒到坐标部分未完成'''
@@ -64,9 +76,9 @@ def time_convert(
             def merge_col(log: ndarray)-> str:
                 date = log[0]
                 time = log[1]
-                date_time = log[date]+'T'+'0'+log[time] # '0' especially for mathor cup data
-                return date_time
-            date_time_a16 = merge_col(log[row,date_time]) 
+                date__time = log[date]+'T'+'0'+log[time] # '0' especially for mathor cup data
+                return date__time
+            date_time_a16 = merge_col(log[row,date_time_col]) 
             real_time = date_time_a16
             # 此处用一个type=a16变量暂存date_time字符串
             # WARNING 警告 两个字符串相加会因为原先的字符串类型位数不够 导致相加失败 但是不报错
@@ -104,24 +116,6 @@ def to_dict(
         
     return log_dict
 
-def decode(
-    log_dict: Dict[str,ndarray]
-)-> Dict[str,list]:
-    for key,ndarray in log_dict.items():
-        # list version
-        list_ = ndarray.tolist()
-        for row in len(list_):
-            date = list_[row][0]
-            time = list_[row][1]
-            date_time = date +'T' +'0' +time
-        
-        # array version
-        list_ = []
-        for row in ndarray:
-            date = row[0]
-            time = ndarray[1]
-            date_time = date +'T'+'0'+time
-            date_time = np.datetime64(date_time)
 
 
 
