@@ -1,3 +1,15 @@
+'''
+    程序功能：
+
+        读取通信流量数据日志文件
+        对时间与日期列进行拼接 
+        以第一行数据为起始时间 
+        以秒为单位计算距离起始时间的距离 作为时间序列索引
+        对以GB为单位的数据*1024转为MB单位
+        以字典方式存储各个区域下的日志
+
+'''
+
 # preprocess of "log file to time series"
 import pandas as pd
 # import cudf as pd # nvidia GPU only # !pip install cudf 
