@@ -32,7 +32,6 @@ def load(
     print('21')
     if return_mode == 'df':return log
     if return_mode == 'values':return log.values
-
 def cut_nan(
     log,
     key_col:list
@@ -139,7 +138,7 @@ def to_dict(
         log_dict[area] = log[mask][:,[1,2,3]]
         
     return log_dict
-# test
+
 log_path = 'D:\\zyh\\data\\com_comp\\train\\test2.csv'
 log_np = load(
     log_path =log_path,
