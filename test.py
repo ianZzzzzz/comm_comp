@@ -1,18 +1,18 @@
-# BUG ValueError: 
-# Error parsing datetime string "2018-03-01T1:00:00" at position 11
-# time_convert 长度判断逻辑有问题
 '''
-    程序功能：
+    进展 ：
+        无BUG 目前
+        完成基站数据的序列化 还没有跑完成的预处理
+        还没有对序列编码
+        
+'''
+'''程序功能：
 
         读取通信流量数据日志文件
         对时间与日期列进行拼接 
         以第一行数据为起始时间 
         以秒为单位计算距离起始时间的距离 作为时间序列索引
         对以GB为单位的数据*1024转为MB单位
-        以字典方式存储各个区域下的日志
-
-'''
-
+        以字典方式存储各个区域下的日志'''
 # preprocess of "log file to time series"
 import pandas as pd
 # import cudf as pd # nvidia GPU only # !pip install cudf 
@@ -72,10 +72,11 @@ def time_convert(
     
     date_time_array = np.zeros((len(log),1),dtype=np.int32)
     # 存储一个月的秒数 需要2^22 存储一年的秒数需要2^25
+    print('log total len :',len(log))
     print('time convert running!')
     
     for row in range(len(log)):
-        if (row%10000)==0:print('row : ',row)
+        if (row%10000)==0:print('finish row : ',row)
         #1拼接
         if merge == True: 
             def merge_col(log: ndarray)-> str:
@@ -112,7 +113,10 @@ def time_convert(
         #print('时间转化完成')
         #3转秒
             #(1)
-        delta = int((real_time - start_time).item().total_seconds())
+        seconds_per_hour = int(60*60)
+        total_seconds_of_gap = int((real_time - start_time).item().total_seconds())
+        delta = total_seconds_of_gap / seconds_per_hour
+        delta = int(delta)
         date_time_array[row] = delta
         #print('转秒完成')
             #(2)
@@ -137,7 +141,7 @@ def to_dict(
     log: ndarray
 )-> Dict[str,ndarray]:
     '''将日志转化为以各关键id为索引的字典'''
-    print('to_dict running!')
+    print('to_dict running! log total len : ',len(log))
     log_dict = {}
     area_set = set(log[:,0])
     i = 0
@@ -149,19 +153,18 @@ def to_dict(
         
     return log_dict
 
-log_path = 'D:\\zyh\\data\\com_comp\\train\\train.csv'
-log_np_t = load(
+log_path = 'D:\\zyh\\data\\com_comp\\train\\train_full.csv'
+log_np_f = load(
     log_path =log_path,
     read_mode ='pandas',
     return_mode = 'values',
-    encoding_ = 'utf-8',
+    encoding_ = 'gbk',
     columns = ['date','time','area','upload_quantity_GB','download_quantity_gb' ]
     )
 #log_np = cut_nan(log_np[1:5,:],key_col = [0,1])
-mask = log_np_t[:,2]=='1'
-log_np_t = log_np_t[mask]
-log_np_t = time_convert(log_np_t[:,:],merge = True,date_time_col = [0,1])
-log_dict_t = to_dict(log_np_t)
+
+log_np_f = time_convert(log_np_f[1:,:],merge = True,date_time_col = [0,1])
+log_dict_f = to_dict(log_np_f)
 
 '''
     程序功能：
@@ -173,9 +176,9 @@ log_dict_t = to_dict(log_np_t)
         确定时间序列坐标轴->time_list
         遍历输入的数据的时间列 
         将其填充到time_list
-        对于缺失值填充有几种方式
-            1 置0
-            2 均值
+        对于缺失值填充方式
+             置0
+            
         
 '''
 
@@ -200,9 +203,10 @@ def time_map(log:ndarray)->ndarray:
     return ts
 
 ts_dict = {}
-for k,v in log_dict_t.items():
+for k,v in log_dict_f.items():
     ts_dict[k] = time_map(v)
 
-
+print('len(ts_dict) : ',len(ts_dict))
+print(ts_dict[1])
 
 
