@@ -15,4 +15,23 @@
 
 '''
 import numpy as np 
-import pandas as pd
+from numpy import ndarray
+#log = [[332, 3646, 0],[33, 3146, 1],[33, 3146, 2],[33, 3146, 5]]
+def time_map(log:ndarray)->ndarray:
+   # log = np.array(log)
+    time_col = log[:,2]
+
+    start = time_col[0]
+    end = time_col[-1]
+
+    length = end-start+1
+    data_width = 2
+
+    ts = np.zeros((length,data_width),dtype = np.int32)
+
+    for row in log:
+        time = row[2] # 时间值 也就是ts中的位置
+        ts[time,[0]] = row[0]
+        ts[time,[1]] = row[1]
+    return ts
+
