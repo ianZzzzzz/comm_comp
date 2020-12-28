@@ -1,9 +1,10 @@
 '''
     进展 ：
         无BUG 目前
-        完成基站数据的序列化 还没有跑完成的预处理
+        完成基站数据的序列化 还没有跑完整的预处理
         还没有对序列编码
-        
+        要加入EDA代码
+
 '''
 '''程序功能：
 
@@ -36,7 +37,7 @@ def load(
     if return_mode == 'df':return log
     if return_mode == 'values':return log.values
 def cut_nan(
-    log,
+    log: ndarray,
     key_col:list
     )->ndarray:
     '''删除给定列中存在空值的日志行'''
@@ -59,7 +60,7 @@ def cut_nan(
     return log
 def time_convert(
     log: ndarray ,
-    merge,
+    merge: bool,
     date_time_col:List['datetime'], 
     start_time = '2018-03-01T00:00:00'
     )->ndarray: 
@@ -76,7 +77,7 @@ def time_convert(
     print('time convert running!')
     
     for row in range(len(log)):
-        if (row%10000)==0:print('finish row : ',row)
+        if (row%100000)==0:print('converted row : ',row)
         #1拼接
         if merge == True: 
             def merge_col(log: ndarray)-> str:
@@ -119,8 +120,7 @@ def time_convert(
         delta = int(delta)
         date_time_array[row] = delta
         #print('转秒完成')
-            #(2)
-        #4定位
+       
     
     # 合并秒数列和log 清除原来date time 列
     print(
@@ -129,6 +129,7 @@ def time_convert(
     new_log = np.concatenate(
          (log[:,[2,3,4]],date_time_array)
          ,axis = 1)
+    
     print('concat finish!')
     # 类型转换
     new_log[:,0] = new_log[:,0].astype('u4')
@@ -136,40 +137,53 @@ def time_convert(
     new_log[:,2] = ((new_log[:,2].astype('f2'))*1024).astype('u2')
     new_log[:,3] = new_log[:,3].astype('u4')
     print('astype finish')
+
     return new_log
+
 def to_dict(
     log: ndarray
-)-> Dict[str,ndarray]:
+    )-> Dict[str,ndarray]:
     '''将日志转化为以各关键id为索引的字典'''
     print('to_dict running! log total len : ',len(log))
     log_dict = {}
     area_set = set(log[:,0])
+    print('find ',len(area_set),' areas')
     i = 0
     for area in area_set:
         i+=1
         mask = log[:,0]==area
         log_dict[area] = log[mask][:,[1,2,3]]
         if (i%10000)==0:print('already dict  ',i,' areas')
+    
+    return log_dict
+def to_dict_2(log: ndarray)-> Dict[str,ndarray]: 
+    '''优化版 时间复杂度低'''
+    print('find ',len(log),' row logs')
+    i = 0
+    log_dict = {}
+    for row in log:
+        area = row[0]
+        data = row[[1,2,3]]
+        #print('area: ',area,' data: ',data)
         
+        # if log_dict[]里没数据：初始化=[]
+        try:
+            log_dict[area].append(data)
+        except:
+            log_dict[area] = []
+            log_dict[area].append(data)
+            #print(log_dict[area])
+        i+=1
+        if (i%100000)==0:print('already dict : ',i,'row logs')
+    
     return log_dict
 
-log_path = 'D:\\zyh\\data\\com_comp\\train\\train_full.csv'
-log_np_f = load(
-    log_path =log_path,
-    read_mode ='pandas',
-    return_mode = 'values',
-    encoding_ = 'gbk',
-    columns = ['date','time','area','upload_quantity_GB','download_quantity_gb' ]
-    )
-#log_np = cut_nan(log_np[1:5,:],key_col = [0,1])
+def time_map(
+    log_dict:dict   
+    )->dict:
+    '''程序功能：
 
-log_np_f = time_convert(log_np_f[1:,:],merge = True,date_time_col = [0,1])
-log_dict_f = to_dict(log_np_f)
-
-'''
-    程序功能：
-
-        接收numpy arry .tolist()得到的list
+        接收list
         使用list中的数据列的头尾两行的时间值作为序列起始和终止时间点
         如果无序 则先排序
         根据起始和终止时间点以及通过EDA确定的采样频率
@@ -177,36 +191,48 @@ log_dict_f = to_dict(log_np_f)
         遍历输入的数据的时间列 
         将其填充到time_list
         对于缺失值填充方式
-             置0
-            
-        
-'''
-
-def time_map(log:ndarray)->ndarray:
+             置0    '''
     import numpy as np
-   # log = np.array(log)
-    time_col = log[:,2]
+    def mapping(log: ndarray)->ndarray:
 
-    start = time_col[0]
-    end = time_col[-1]
+        time_col = log[:,2]
+        
+        start = time_col[0]
+        end = time_col[-1]
+        
+        length = end-start+1
+        data_width = 2
 
-    length = end-start+1
-    data_width = 2
+        ts = np.zeros((length,data_width),dtype = np.int32)
 
-    ts = np.zeros((length,data_width),dtype = np.int32)
+        for row in log:
+            time = row[2] - start # 时间值 也就是ts中的位置
+            # BUG 逻辑不完备 默认了序列的起始是1 
+            # 但实际序列可能是8到10这样 间距是3
+            # 程序找的索引却是list[8]而不是list[0]
+            
+            ts[time,0] = row[0]
+            ts[time,1] = row[1]
+        
+        return ts
+    
+    ts_dict = {}
+    j = 0
+    for k,v in log_dict.items():
+        v = np.array(v)
+        ts_dict[k] = mapping(v)
 
-    for row in log:
-        time = row[2] # 时间值 也就是ts中的位置
-        ts[time,[0]] = row[0]
-        ts[time,[1]] = row[1]
-        #print(ts)
-    return ts
-
-ts_dict = {}
-for k,v in log_dict_f.items():
-    ts_dict[k] = time_map(v)
-
-print('len(ts_dict) : ',len(ts_dict))
-print(ts_dict[1])
-
-
+        j+=1
+        if (j%10000)==0:print('already map :',j,'area')
+    
+    return ts_dict
+log_path = 'D:\\zyh\\data\\com_comp\\train\\train_part.csv'
+log_np = load(
+    log_path =log_path,
+    read_mode ='pandas',
+    return_mode = 'values',
+    encoding_ = 'gbk',
+    columns = ['date','time','area','upload_quantity_GB','download_quantity_gb' ])
+log_np = time_convert(log_np[1:,:],merge = True,date_time_col = [0,1])
+log_dict = to_dict_2(log_np[:,:])
+ts_dict = time_map(log_dict)
