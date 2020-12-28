@@ -35,3 +35,5 @@ def time_map(log:ndarray)->ndarray:
         ts[time,[1]] = row[1]
     return ts
 
+for k,v in log_dict.items():
+    v = time_map(v)

@@ -92,7 +92,8 @@ def time_convert(
                         else:
                             date = date[0:8]+'0'+date[8]
                 time = log[1]
-                if time[0]=='0':time = '0'+time
+                
+                if time[1]==':':time = '0'+time
                 date__time = date+'T'+time
                 return date__time
             date_time_a16 = merge_col(log[row,date_time_col]) 
@@ -157,7 +158,9 @@ log_np_t = load(
     columns = ['date','time','area','upload_quantity_GB','download_quantity_gb' ]
     )
 #log_np = cut_nan(log_np[1:5,:],key_col = [0,1])
-log_np_t = time_convert(log_np_t[1:,:],merge = True,date_time_col = [0,1])
+mask = log_np_t[:,2]=='1'
+log_np_t = log_np_t[mask]
+log_np_t = time_convert(log_np_t[:,:],merge = True,date_time_col = [0,1])
 log_dict_t = to_dict(log_np_t)
 
 '''
@@ -177,6 +180,7 @@ log_dict_t = to_dict(log_np_t)
 '''
 
 def time_map(log:ndarray)->ndarray:
+    import numpy as np
    # log = np.array(log)
     time_col = log[:,2]
 
@@ -192,10 +196,12 @@ def time_map(log:ndarray)->ndarray:
         time = row[2] # 时间值 也就是ts中的位置
         ts[time,[0]] = row[0]
         ts[time,[1]] = row[1]
+        #print(ts)
     return ts
 
-for k,v in log_dict.items():
-    v = time_map(v)
+ts_dict = {}
+for k,v in log_dict_t.items():
+    ts_dict[k] = time_map(v)
 
 
 
