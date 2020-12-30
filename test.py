@@ -21,7 +21,7 @@ from typing import List, Dict
 from numpy import ndarray
 from pandas import DataFrame
 import numpy as np
-
+print_batch = int(1000000)
 def _t(function):
     from functools import wraps
     import time
@@ -98,18 +98,23 @@ def time_convert(
     print('time convert running!')
     
     for row in range(len(log)):
-        if (row%100000)==0:print('converted row : ',row)
+        if (row%print_batch)==0:print('converted row : ',row)
         #1拼接
         if merge == True: 
             def merge_col(log: ndarray)-> str:
                 
                 date = log[0].replace('/','-')
                 # yyyy-m-d -> yyyy-mm-dd 以适应numpy严格的格式要求
+                # 原始数据88000000之后2018被记录为018
+                # 此处针对此情况处理
+                if (row>=88000000) & (date[0]=='0') :
+                    date = '2'+date
+                    print('2+ run')
                 if len(date)<10:
                     if len(date) == 8:
                         date = date[0:5]+'0'+date[5:7]+'0'+date[7]
                     else:
-                       # print('date:',date)
+                       
                         if date[6]=='-':
                             date = date[0:5]+'0'+date[5:]
                         else:
@@ -129,10 +134,12 @@ def time_convert(
             real_time = log[row,date_time_col]
         
         #2转化
-        
-        real_time = np.datetime64(real_time) 
-        start_time = np.datetime64(start_time)
-        #print('时间转化完成')
+        try:
+            real_time = np.datetime64(real_time) 
+            start_time = np.datetime64(start_time)
+            #print('时间转化完成')
+        except:
+            print('real_time : ',real_time,'row:',row,'date:',date)
         #3转秒
             #(1)
         seconds_per_hour = int(60*60)
@@ -174,7 +181,7 @@ def to_dict(
         i+=1
         mask = log[:,0]==area
         log_dict[area] = log[mask][:,[1,2,3]]
-        if (i%10000)==0:print('already dict  ',i,' areas')
+        if (i%print_batch)==0:print('already dict  ',i,' areas')
     
     return log_dict
 @_t
@@ -196,7 +203,7 @@ def to_dict_2(log: ndarray)-> Dict[str,ndarray]:
             log_dict[area].append(data)
             #print(log_dict[area])
         i+=1
-        if (i%100000)==0:print('already dict : ',i,'row logs')
+        if (i%print_batch)==0:print('already dict : ',i,'row logs')
     
     return log_dict
 @_t
@@ -222,7 +229,7 @@ def time_map(
         start = time_col[0]
         end = time_col[-1]
         
-        length = end-start+1
+        length = int(end)-int(start)+1
         data_width = 2
 
         ts = np.zeros((length,data_width),dtype = np.int32)
@@ -254,24 +261,36 @@ def to_json(path,dict_log: Dict[int,ndarray]):
         # json不支持ndarray
         # 用json导出 array 要先 .tolist() 读取的时候直接np.array()
     '''
-    for k,v in dict_log.items():
+    '''for k,v in dict_log.items():
         dict_log[k] = v.tolist()
-
+'''
     import json
     json.dump(dict_log,open(path,'w'))
 
-log_path = 'D:\\zyh\\data\\com_comp\\train\\train_part.csv'
+log_path = 'D:\\zyh\\data\\com_comp\\train\\train_full.csv'
 log_np = load(
     log_path =log_path,
     read_mode ='pandas',
     return_mode = 'values',
     encoding_ = 'gbk',
     columns = ['date','time','area','upload_quantity_GB','download_quantity_gb' ])
-log_np = time_convert(log_np[1:,:],merge = True,date_time_col = [0,1])
-log_dict = to_dict_2(log_np[:,:])
+log_np_convert = time_convert(log_np[1:,:],merge = True,date_time_col = [0,1])
+log_dict = to_dict_2(log_np_convert[:,:])
 ts_dict = time_map(log_dict) 
 to_json(path = 'processed_log.json',dict_log=ts_dict)
 #dataset format
-ds_log = np.zeros(
-    (len(ts_dict),2),dtype = np.int32)
+'''ds_log = np.zeros(
+    (len(ts_dict),2),dtype = np.int32)'''
 # BUG 存在问题 每个区域下的日志长度是不确定的  
+
+test_np = log_np[88000000:89000000,:]
+row = 88000000+10
+date = '018-04-01'
+if (row>88000000) and (date[0]=='0') :
+    date = '2'+date
+    print(date)
+test_log = log_np[88000000:,:]
+log_np_convert_t = time_convert(test_log,merge = True,date_time_col = [0,1])
+log_dict_t = to_dict_2(log_np_convert_t[:,:])
+ts_dict_t = time_map(log_dict_t) 
+to_json(path = 'processed_log.json',dict_log=ts_dict_t)
