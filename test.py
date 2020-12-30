@@ -20,7 +20,26 @@ import pandas as pd
 from typing import List, Dict
 from numpy import ndarray
 from pandas import DataFrame
+import numpy as np
 
+def _t(function):
+    from functools import wraps
+    import time
+    '''
+    用装饰器实现函数计时
+    :param function: 需要计时的函数
+    :return: None
+    '''
+    @wraps(function)
+    def function_timer(*args, **kwargs):
+        print ('[Function: {name} start...]'.format(name = function.__name__))
+        t0 = time.time()
+        result = function(*args, **kwargs)
+        t1 = time.time()
+        print ('[Function: {name} finished, spent time: {time:.2f}s]'.format(name = function.__name__,time = t1 - t0))
+        return result
+    return function_timer
+@_t
 def load(
     log_path: str,
     read_mode: str,
@@ -36,6 +55,7 @@ def load(
         print('load running!')
     if return_mode == 'df':return log
     if return_mode == 'values':return log.values
+@_t
 def cut_nan(
     log: ndarray,
     key_col:list
@@ -58,6 +78,7 @@ def cut_nan(
         log = log[~mask]
     
     return log
+@_t
 def time_convert(
     log: ndarray ,
     merge: bool,
@@ -139,7 +160,7 @@ def time_convert(
     print('astype finish')
 
     return new_log
-
+@_t
 def to_dict(
     log: ndarray
     )-> Dict[str,ndarray]:
@@ -156,6 +177,7 @@ def to_dict(
         if (i%10000)==0:print('already dict  ',i,' areas')
     
     return log_dict
+@_t
 def to_dict_2(log: ndarray)-> Dict[str,ndarray]: 
     '''优化版 时间复杂度低'''
     print('find ',len(log),' row logs')
@@ -177,7 +199,7 @@ def to_dict_2(log: ndarray)-> Dict[str,ndarray]:
         if (i%100000)==0:print('already dict : ',i,'row logs')
     
     return log_dict
-
+@_t
 def time_map(
     log_dict:dict   
     )->dict:
@@ -226,6 +248,18 @@ def time_map(
         if (j%10000)==0:print('already map :',j,'area')
     
     return ts_dict
+@_t
+def to_json(path,dict_log: Dict[int,ndarray]):
+    '''dict[    enroll_id : array.tolist()]-->json_txt
+        # json不支持ndarray
+        # 用json导出 array 要先 .tolist() 读取的时候直接np.array()
+    '''
+    for k,v in dict_log.items():
+        dict_log[k] = v.tolist()
+
+    import json
+    json.dump(dict_log,open(path,'w'))
+
 log_path = 'D:\\zyh\\data\\com_comp\\train\\train_part.csv'
 log_np = load(
     log_path =log_path,
@@ -235,4 +269,9 @@ log_np = load(
     columns = ['date','time','area','upload_quantity_GB','download_quantity_gb' ])
 log_np = time_convert(log_np[1:,:],merge = True,date_time_col = [0,1])
 log_dict = to_dict_2(log_np[:,:])
-ts_dict = time_map(log_dict)
+ts_dict = time_map(log_dict) 
+to_json(path = 'processed_log.json',dict_log=ts_dict)
+#dataset format
+ds_log = np.zeros(
+    (len(ts_dict),2),dtype = np.int32)
+# BUG 存在问题 每个区域下的日志长度是不确定的  
