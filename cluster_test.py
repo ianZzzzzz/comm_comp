@@ -28,7 +28,7 @@ import numpy as np
 from scipy.spatial.distance import euclidean
 from fastdtw import fastdtw
 
-x = np.array([ [2,2,2], [3,2,3], [4,4,1]])
-y = np.array([[2,2,2], [3,2,3], [4,4,6]])
+x = np.array([ [7], [8], [9]])
+y = np.array([[2], [3], [4]])
 distance, path = fastdtw(x, y, dist=euclidean)
 print(distance)

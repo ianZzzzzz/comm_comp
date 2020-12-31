@@ -156,7 +156,6 @@ def time_convert(
         except:
             print('real_time : ',real_time,'row:',row,'date:',date)
         #3转秒
-            #(1)
         seconds_per_hour = int(60*60)
         total_seconds_of_gap = int((real_time - start_time).item().total_seconds())
         delta = total_seconds_of_gap / seconds_per_hour
@@ -173,8 +172,9 @@ def time_convert(
          (log[:,[2,3,4]],date_time_array)
          ,axis = 1)
     
-    print('concat finish!')
+    print('concat finish! ')
     # 类型转换
+    print('astype running!')
     new_log[:,0] = new_log[:,0].astype('u4')
     new_log[:,1] = ((new_log[:,1].astype('f2'))*1024).astype('u2')
     new_log[:,2] = ((new_log[:,2].astype('f2'))*1024).astype('u2')
@@ -282,7 +282,7 @@ def to_json(path,dict_log: Dict[int,ndarray]):
     import json
     json.dump(dict_log,open(path,'w'))
 
-log_path = 'D:\\zyh\\data\\com_comp\\train\\train_part.csv'
+log_path = 'D:\\zyh\\data\\com_comp\\train\\train_full.csv'
 
 log_np = load(
     log_path =log_path,
@@ -300,35 +300,24 @@ log_np = load(
     columns = ['日期','时间''小区编号','上行业务量GB'
         ,'下行业务量GB']
     columns = ['date','time','area','upload_quantity_GB'
-        ,'download_quantity_gb' ]   ''' 
-log_np_convert = time_convert(log_np[1:,:],merge = True,date_time_col = [0,1])
+        ,'download_quantity_gb' ] ''' 
 
-log_dict_1 = to_dict_2(log_np_convert[:50000000,:])
-log_dict_2 = to_dict_2(log_np_convert[50000000:100000000,:])
-log_dict_3 = to_dict_2(log_np_convert[100000000:-1,:])
+log_np_convert = time_convert(log_np[50000001:,:],merge = True,date_time_col = [0,1])
 
-ts_dict_1 = time_map(log_dict_1)
+# 内存不够 分批处理
+''' log_dict_1 = to_dict_2(log_np_convert[:50000000,:])
+    ts_dict_1 = time_map(log_dict_1)
+    to_json(path = 'processed_log_1.json',dict_log=ts_dict_1)
+'''
+log_dict_2 = to_dict_2(log_np_convert[:50000000,:])
 ts_dict_2 = time_map(log_dict_2) 
-ts_dict_3 = time_map(log_dict_3)  
-to_json(path = 'processed_log_1.json',dict_log=ts_dict_1)
 to_json(path = 'processed_log_2.json',dict_log=ts_dict_2)
+
+log_dict_3 = to_dict_2(log_np_convert[50000000:-1,:])
+ts_dict_3 = time_map(log_dict_3) 
 to_json(path = 'processed_log_3.json',dict_log=ts_dict_3)
 
 #dataset format
 '''ds_log = np.zeros(
     (len(ts_dict),2),dtype = np.int32)'''
-# BUG 存在问题 每个区域下的日志长度是不确定的  
-
-test_np = log_np[88000000:89000000,:]
-row = 88000000+10
-date = '018-04-01'
-if (row>88000000) and (date[0]=='0') :
-    date = '2'+date
-    print(date)
-test_log = log_np[88000000:89000000,:]
-log_np_convert_t = time_convert(test_log,merge = True,date_time_col = [0,1])
-log_dict_t = to_dict_2(log_np_convert_t[:,:])
-ts_dict_t = time_map(log_dict_t) 
-to_json(path = 'processed_log.json',dict_log=ts_dict_t)
-
-
+    # BUG 存在问题 每个区域下的日志长度是不确定的  
