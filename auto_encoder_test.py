@@ -129,8 +129,10 @@ history = autoencoder.fit(train_data, train_data,
           batch_size=512,
           validation_data=(test_data, test_data),
           shuffle=True)
+
 encoded_imgs = autoencoder.encoder(test_data).numpy()
 decoded_imgs = autoencoder.decoder(encoded_imgs).numpy()
+
 '''
     plt.plot(history.history["loss"], label="Training Loss")
     plt.plot(history.history["val_loss"], label="Validation Loss")
